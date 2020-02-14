@@ -23,7 +23,7 @@ const margin = {
 };
 
 // select svg
-const svg = d3.select("svg#bubble");
+const svg = d3.select("svg#bar");
 console.assert(svg.size() == 1);
 
 // set svg size
@@ -63,7 +63,8 @@ scales.y.range([height - margin.top - margin.bottom, 0]);
 scales.y.domain([-0.5, 10.5]);
 
 // note we can chain if we want
-scales.r.range([1, 20]).domain([0, 9000]);
+scales.r.range([1, 20])
+        .domain([0, 9000]);
 
 scales.fill.domain([-20, 0, 35]);
 
@@ -75,21 +76,31 @@ drawColorLegend();
 
 // load data and trigger draw
 // d3.csv("hw/1/Air_Traffic_Passenger_Statistics.csv", convert).then(draw);
-d3.csv("hw/1/Air_Traffic_Passenger_Statistics.csv").then(draw);
+d3.csv("hw/1/Air_Traffic_Passenger_Statistics_1.csv")
+  .then(draw);
 
+/*
+  {
+    data:
+    {
+      Activity Period: []
+      GEO Summary: []
+      Passenger Count: []
+    }
+  }
+ */
 function draw(data) {
   console.log("loaded:", data.length, data[0]);
 
-  // filter for only california universities
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
-  data = data.filter(row => row.state === "CA");
+  // data = data.filter(row => row.state === "CA");
   console.log("filter:", data.length, data[0]);
 
   // sort by count so small circles are drawn last
   data.sort((a, b) => b.count - a.count);
   console.log("sorted:", data.length, data[0]);
 
-  drawBubble(data);
+  drawBar1(data);
   drawMedian(data); // in this order, lines will be on top of bubbles
   drawLabels(data);
 }
@@ -175,7 +186,7 @@ function drawMedian(data) {
 /*
  * draw bubbles
  */
-function drawBubble(data) {
+function drawBar1(data) {
   // place all of the bubbles in their own group
   const group = plot.append('g').attr('id', 'bubbles');
 

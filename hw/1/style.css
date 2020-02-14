@@ -1,0 +1,86 @@
+body {
+    background-color: whitesmoke;
+
+    /*
+     * the non-white background color is only to make it clear where our SVG is
+     * located on the page and can be removed in the final version
+     */
+}
+
+svg {
+    background-color: white;
+}
+
+/*
+ * i prefer to define values using em, ex, or rem (which are relative lengths),
+ * but to simplify the example everything uses px (which is an absolute length)
+ * see: https://developer.mozilla.org/en-US/docs/Web/CSS/length
+ */
+
+.tick line,
+path.domain {
+    stroke: #bbbbbb;
+}
+
+text.axis-title, text.legendTitle {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#labels text {
+    font-size: 9px;
+    text-shadow: 1px 1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, -1px -1px 0 #fff;
+
+    /*
+     * text shadow:
+     * https://developer.mozilla.org/en-US/docs/Web/CSS/text-shadow
+     */
+}
+
+#color-axis path {
+    display: none;
+}
+
+.tick text, .legendCells text.label {
+    font-size: 9px;
+    fill: #666666;
+    font-weight: normal;
+}
+
+#color-axis line {
+    stroke: none;
+}
+
+#averages line {
+    stroke: black;
+    stroke-width: 1px;
+    stroke-opacity: 0.25;
+    stroke-dasharray: 2 1;
+}
+
+#averages text {
+    font-size: 10px;
+    fill: black;
+    fill-opacity: 0.5;
+}
+
+/*
+ * example of fancy CSS selection. see:
+ * https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes
+ */
+
+#color-axis g.tick:not(:nth-child(2)):not(:last-child) line {
+    stroke: black;
+    stroke-width: 2;
+}
+
+.tick line {
+    opacity: 0.5;
+    stroke-dasharray: 4 4;
+}
+
+.legendCells circle.swatch {
+    fill: none;
+    stroke: #888888;
+    stroke-width: 2;
+}
