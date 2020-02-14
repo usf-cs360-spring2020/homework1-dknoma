@@ -71,10 +71,11 @@ scales.fill.domain([-20, 0, 35]);
 drawAxis();
 drawTitles();
 drawColorLegend();
-drawCircleLegend();
+// drawCircleLegend();
 
 // load data and trigger draw
-d3.csv("mrc_table1.csv", convert).then(draw);
+// d3.csv("hw/1/Air_Traffic_Passenger_Statistics.csv", convert).then(draw);
+d3.csv("hw/1/Air_Traffic_Passenger_Statistics.csv").then(draw);
 
 function draw(data) {
   console.log("loaded:", data.length, data[0]);
@@ -117,8 +118,8 @@ function drawLabels(data) {
 
   // maybe we also want to make it more clear which circle is associated
   // with the label above it---we will work with update selection here!
-  plot.select('#bubbles')
-    .selectAll('circle')
+  plot.select('#bar')
+    .selectAll('rect')
     .data(data)
     .filter(d => d.label)
     .style('stroke', 'black')
@@ -178,10 +179,10 @@ function drawBubble(data) {
   // place all of the bubbles in their own group
   const group = plot.append('g').attr('id', 'bubbles');
 
-  const bubbles = group.selectAll('circle')
+  const bubbles = group.selectAll('rect')
     .data(data)
     .enter()
-    .append('circle');
+    .append('rect');
 
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
   bubbles.attr('cx', d => scales.x(d.income));
