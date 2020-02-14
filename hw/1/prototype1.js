@@ -15,6 +15,21 @@
 const width = 960;
 const height = 500;
 
+const month = {
+  JAN: 'January',
+  FEB: 'February',
+  MAR: 'March',
+  APR: 'April',
+  MAY: 'May',
+  JUN: 'June',
+  JUL: 'July',
+  AUG: 'August',
+  SEP: 'September',
+  OCT: 'October',
+  NOV: 'November',
+  DEC: 'December',
+};
+
 const margin = {
   top: 10,
   bottom: 35,
@@ -94,15 +109,144 @@ function draw(data) {
 
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
   // data = data.filter(row => row.state === "CA");
-  console.log("filter:", data.length, data[0]);
+  let internationalData = data.filter(row => row['GEO Summary'] === 'International');
+  let domesticData = data.filter(row => row['GEO Summary'] === 'Domestic');
+  console.log("filter - internationalData:", internationalData.length, internationalData[0]);
+  console.log("filter - domesticData:", domesticData.length, domesticData[0]);
 
   // sort by count so small circles are drawn last
-  data.sort((a, b) => b.count - a.count);
-  console.log("sorted:", data.length, data[0]);
+  internationalData.sort((a, b) => a['Activity Period'] - b['Activity Period']);
+  domesticData.sort((a, b) => a['Activity Period'] - b['Activity Period']);
+  console.log("sorted - internationalData:", internationalData.length, internationalData[0]);
+  console.log("sorted - domesticData:", domesticData.length, domesticData[0]);
 
-  drawBar1(data);
+  drawDomesticBar(domesticData);
+  // drawInternationalBar(data);
   drawMedian(data); // in this order, lines will be on top of bubbles
   drawLabels(data);
+}
+
+/*
+ * draw bars
+ */
+function drawDomesticBar(data) {
+  // place all of the bars in their own group
+  const group = plot.append('g').attr('id', 'domesticBars');
+
+  const domesticBars = group.selectAll('rect')
+                            .data(data)
+                            .enter()
+                            .append('rect');
+
+  console.log('Passenger Count = %s', data);
+  let maxValue = Math.max(data['Passenger Count']);
+  console.log('max = %s', maxValue);
+
+  let y = d3.scale.linear()
+            .domain([0, 42])
+            .range([height, 0]);
+
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
+  domesticBars.attr("width", 20)
+              .attr("height",function(d) { return height - y(d); })
+              .attr('cx', d => scales.x(d['Activity Period']));
+  domesticBars.attr('cy', d => scales.y(d['Passenger Count']));
+
+  domesticBars.style('stroke', 'white');
+  domesticBars.style('fill', 'blue');
+}
+
+// https://beta.observablehq.com/@tmcw/d3-scalesequential-continuous-color-legend-example
+function drawColorLegend() {
+  const legendWidth = 200;
+  const legendHeight = 20;
+
+  // place legend in its own group
+  const group = svg.append('g').attr('id', 'color-legend');
+
+  // shift legend to appropriate position
+  group.attr('transform', translate(width - margin.right - legendWidth, margin.top + 375));
+
+  const title = group.append('text')
+                     .attr('class', 'axis-title')
+                     .text('Trend of Parents in Bottom 20%');
+
+  title.attr('dy', 12);
+
+  // lets draw the rectangle, but it won't have a fill just yet
+  const colorbox = group.append('rect')
+                        .attr('x', 0)
+                        .attr('y', 12 + 6)
+                        .attr('width', legendWidth)
+                        .attr('height', legendHeight);
+
+  // we need to create a linear gradient for our color legend
+  // this defines a color at a percent offset
+  // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/linearGradient
+
+  // this is easier if we create a scale to map our colors to percents
+
+  // get the domain first (we do not want the middle value from the diverging scale)
+  const colorDomain = [d3.min(scales.fill.domain()), d3.max(scales.fill.domain())];
+
+  // add a new scale to go from color tick to percent
+  scales.percent = d3.scaleLinear()
+                     .range([0, 100])
+                     .domain(colorDomain);
+
+  // we have to first add gradients
+  const defs = svg.append('defs');
+
+  // add a color stop per data tick
+  // input  (ticks)   : [-20, ..., 15, ..., 50]
+  // output (percents): [  0, ..., 50, ..., 100]
+  defs.append('linearGradient')
+      .attr('id', 'gradient')
+      .selectAll('stop')
+      .data(scales.fill.ticks())
+      .enter()
+      .append('stop')
+      .attr('offset', d => scales.percent(d) + '%')
+      .attr('stop-color', d => scales.fill(d));
+
+  // draw the color rectangle with the gradient
+  colorbox.attr('fill', 'url(#gradient)');
+
+  // now we need to draw tick marks for our scale
+  // we can create a legend that will map our data domain to the legend colorbox
+  scales.legend = d3.scaleLinear()
+                    .domain(colorDomain)
+                    .range([0, legendWidth]);
+
+  // i tend to keep scales global so i can debug them in the console
+  // in this case there really is no need for the percent and legend scales
+  // to be accessible outside of this function
+
+  const legendAxis = d3.axisBottom(scales.legend)
+                       .tickValues(scales.fill.domain())
+                       .tickSize(legendHeight)
+                       .tickSizeOuter(0);
+
+  const axisGroup = group.append('g')
+                         .attr('id', 'color-axis')
+                         .attr('transform', translate(0, 12 + 6))
+                         .call(legendAxis);
+
+  // now lets tighten up the tick labels a bit so they don't stick out
+  axisGroup.selectAll('text')
+           .each(function(d, i) {
+             // set the first tick mark to anchor at the start
+             if (i == 0) {
+               d3.select(this).attr('text-anchor', 'start');
+             }
+             // set the last tick mark to anchor at the end
+             else if (i == legendAxis.tickValues().length - 1) {
+               d3.select(this).attr('text-anchor', 'end');
+             }
+           });
+
+  // note how many more lines of code it took to generate the legend
+  // than the base visualization!
 }
 
 /*
@@ -181,120 +325,6 @@ function drawMedian(data) {
     .attr('dx', 4)
     .attr('dy', -6)
     .attr('text-anchor', 'start');
-}
-
-/*
- * draw bubbles
- */
-function drawBar1(data) {
-  // place all of the bubbles in their own group
-  const group = plot.append('g').attr('id', 'bubbles');
-
-  const bubbles = group.selectAll('rect')
-    .data(data)
-    .enter()
-    .append('rect');
-
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
-  bubbles.attr('cx', d => scales.x(d.income));
-  bubbles.attr('cy', d => scales.y(d.mobility));
-  bubbles.attr('r',  d => scales.r(d.count));
-
-  bubbles.style('stroke', 'white');
-  bubbles.style('fill', d => scales.fill(d.trend));
-}
-
-// https://beta.observablehq.com/@tmcw/d3-scalesequential-continuous-color-legend-example
-function drawColorLegend() {
-  const legendWidth = 200;
-  const legendHeight = 20;
-
-  // place legend in its own group
-  const group = svg.append('g').attr('id', 'color-legend');
-
-  // shift legend to appropriate position
-  group.attr('transform', translate(width - margin.right - legendWidth, margin.top + 375));
-
-  const title = group.append('text')
-    .attr('class', 'axis-title')
-    .text('Trend of Parents in Bottom 20%');
-
-  title.attr('dy', 12);
-
-  // lets draw the rectangle, but it won't have a fill just yet
-  const colorbox = group.append('rect')
-    .attr('x', 0)
-    .attr('y', 12 + 6)
-    .attr('width', legendWidth)
-    .attr('height', legendHeight);
-
-  // we need to create a linear gradient for our color legend
-  // this defines a color at a percent offset
-  // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/linearGradient
-
-  // this is easier if we create a scale to map our colors to percents
-
-  // get the domain first (we do not want the middle value from the diverging scale)
-  const colorDomain = [d3.min(scales.fill.domain()), d3.max(scales.fill.domain())];
-
-  // add a new scale to go from color tick to percent
-  scales.percent = d3.scaleLinear()
-    .range([0, 100])
-    .domain(colorDomain);
-
-  // we have to first add gradients
-  const defs = svg.append('defs');
-
-  // add a color stop per data tick
-  // input  (ticks)   : [-20, ..., 15, ..., 50]
-  // output (percents): [  0, ..., 50, ..., 100]
-  defs.append('linearGradient')
-    .attr('id', 'gradient')
-    .selectAll('stop')
-    .data(scales.fill.ticks())
-    .enter()
-    .append('stop')
-    .attr('offset', d => scales.percent(d) + '%')
-    .attr('stop-color', d => scales.fill(d));
-
-  // draw the color rectangle with the gradient
-  colorbox.attr('fill', 'url(#gradient)');
-
-  // now we need to draw tick marks for our scale
-  // we can create a legend that will map our data domain to the legend colorbox
-  scales.legend = d3.scaleLinear()
-    .domain(colorDomain)
-    .range([0, legendWidth]);
-
-  // i tend to keep scales global so i can debug them in the console
-  // in this case there really is no need for the percent and legend scales
-  // to be accessible outside of this function
-
-  const legendAxis = d3.axisBottom(scales.legend)
-    .tickValues(scales.fill.domain())
-    .tickSize(legendHeight)
-    .tickSizeOuter(0);
-
-  const axisGroup = group.append('g')
-    .attr('id', 'color-axis')
-    .attr('transform', translate(0, 12 + 6))
-    .call(legendAxis);
-
-  // now lets tighten up the tick labels a bit so they don't stick out
-  axisGroup.selectAll('text')
-    .each(function(d, i) {
-      // set the first tick mark to anchor at the start
-      if (i == 0) {
-        d3.select(this).attr('text-anchor', 'start');
-      }
-      // set the last tick mark to anchor at the end
-      else if (i == legendAxis.tickValues().length - 1) {
-        d3.select(this).attr('text-anchor', 'end');
-      }
-    });
-
-  // note how many more lines of code it took to generate the legend
-  // than the base visualization!
 }
 
 /*
@@ -387,10 +417,10 @@ function drawAxis() {
   // https://github.com/d3/d3-format#locale_formatPrefix
   xAxis.ticks(9, 's')
     .tickSizeOuter(0)
-    .tickSizeInner(-height + margin.top + margin.bottom);
-  yAxis.ticks(6)
+    .tickSizeInner(0);
+  yAxis.ticks(5)
     .tickSizeInner(-width + margin.left + margin.right)
-    .tickSizeOuter(0);;
+    .tickSizeOuter(0);
 
   // shift x axis to correct location
   xGroup.attr('transform', translate(margin.left, height - margin.bottom));
@@ -405,65 +435,55 @@ function drawAxis() {
  * converts values as necessary and discards unused columns
  */
 function convert(row) {
-  let keep = {}
+  let keep = {};
 
-  keep.name = row.name;
-  keep.state = row.state;
+  keep['Passenger Count'] = parseInt(row['Passenger Count']);
+  keep['GEO Summary'] = row['GEO Summary'];;
 
-  keep.count = parseInt(row.count);
-  keep.mobility = parseFloat(row.mr_kq5_pq1);
-  keep.income = parseFloat(row.par_median);
-  keep.trend = parseFloat(row.trend_bottom40);
+  let activityPeriod = row['Activity Period'];
+  let len = activityPeriod.length;
 
-  switch(row.name.toLowerCase()) {
-    case 'university of san francisco':
-      keep.name = 'USF';
-      keep.label = true;
+  let res;
+  switch(activityPeriod.substring(len-2, len)) {
+    case '01':
+      res = month.JAN;
       break;
-
-    case 'california state university, los angeles':
-      keep.name = 'CalState LA';
-      keep.label = true;
+    case '02':
+      res = month.FEB;
       break;
-
-    case 'harvey mudd college':
-      keep.name = 'Harvey Mudd';
-      keep.label = true;
+    case '03':
+      res = month.MAR;
       break;
-
-    case 'san francisco community college district':
-      keep.name = 'SF Community Colleges';
-      keep.label = true;
+    case '04':
+      res = month.APR;
       break;
-
-    case 'san francisco state university':
-      keep.name = 'SF State';
-      keep.label = true;
+    case '05':
+      res = month.MAY;
       break;
-
-    case 'sonoma state university':
-      keep.name = 'Sonoma State';
-      keep.label = true;
+    case '06':
+      res = month.JUN;
       break;
-
-    case 'stanford university':
-      keep.name = 'Stanford';
-      keep.label = true;
+    case '07':
+      res = month.JUL;
       break;
-
-    case 'university of california, los angeles':
-      keep.name = 'UCLA';
-      keep.label = true;
+    case '08':
+      res = month.AUG;
       break;
-
-    case 'university of california, berkeley':
-      keep.name = 'UC Berkeley';
-      keep.label = true;
+    case '09':
+      res = month.SEP;
       break;
-
-    default:
-      keep.label = false;
+    case '10':
+      res = month.OCT;
+      break;
+    case '11':
+      res = month.NOV;
+      break;
+    case '12':
+      res = month.DEC;
+      break;
   }
+
+  keep['Activity Period'] = res;
 
   return keep;
 }
