@@ -14,6 +14,7 @@
 // set svg size and plot margins
 const width = 960;
 const height = 500;
+
 const month = {
   JAN: { str: 'January', id: 1 },
   FEB: { str: 'February', id: 2 },
@@ -29,7 +30,7 @@ const month = {
   DEC: { str: 'December', id: 12 },
 };
 
-const months = [
+const validMonths = [
   month.JAN.str,
   month.FEB.str,
   month.MAR.str,
@@ -39,10 +40,13 @@ const months = [
   month.JUL.str,
   month.AUG.str,
   month.SEP.str,
-  month.OCT.str,
-  month.NOV.str,
-  month.DEC.str,
 ];
+
+const columns = {
+  PASSENGER_COUNT: 'Passenger Count',
+  ACTIVITY_PERIOD: 'Activity Period',
+  GEO_SUMMARY: 'GEO Summary'
+};
 
 const stackLayers = {
   domestic: 'Domestic',
@@ -52,7 +56,7 @@ const stackLayers = {
 const margin = {
   top: 10,
   bottom: 35,
-  left: 35,
+  left: 45,
   right: 15
 };
 
@@ -88,7 +92,7 @@ const scales = {
 // we are going to hardcode the domains, so we can setup our scales now
 // that is one benefit of prototyping!
 scales.x.range([0, width - margin.left - margin.right]);
-scales.x.domain(months);
+scales.x.domain(validMonths);
 
 scales.y.range([height - margin.top - margin.bottom, 0]);
 scales.y.domain([0, 6000000]);
@@ -123,7 +127,7 @@ function draw(data) {
   console.log('loaded:', data.length, data[0]);
 
   data.forEach(row => {
-    let count = row['Passenger Count'];
+    let count = row[columns.PASSENGER_COUNT];
     if(count > maxPassengerCount) {
       maxPassengerCount = count;
     }
@@ -135,9 +139,9 @@ function draw(data) {
   //     return data.map(
   //       (d) => {
   //         return {
-  //           'Activity Period': d['Activity Period'],
-  //           'GEO Summary': geo,
-  //           'Passenger Count': d['Passenger Count'],
+  //           columns.ACTIVITY_PERIOD: d[columns.ACTIVITY_PERIOD],
+  //           columns.GEO_SUMMARY: geo,
+  //           columns.PASSENGER_COUNT: d[columns.PASSENGER_COUNT],
   //         };
   //       }
   //     );
@@ -146,20 +150,20 @@ function draw(data) {
   //
   // // Sort by activity period
   // for(let i = 0; i < layeredData.length; i++) {
-  //   layeredData[i].sort((a, b) => a['Activity Period'].id - b['Activity Period'].id);
+  //   layeredData[i].sort((a, b) => a[columns.ACTIVITY_PERIOD].id - b[columns.ACTIVITY_PERIOD].id);
   // }
   //
   // console.log(layeredData);
 
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
-  let internationalData = data.filter(row => row['GEO Summary'] === 'International');
-  let domesticData = data.filter(row => row['GEO Summary'] === 'Domestic');
+  let internationalData = data.filter(row => row[columns.GEO_SUMMARY] === 'International');
+  let domesticData = data.filter(row => row[columns.GEO_SUMMARY] === 'Domestic');
   console.log('filter - internationalData:', internationalData.length, internationalData[0]);
   console.log('filter - domesticData:', domesticData.length, domesticData[0]);
 
   // sort by count so small circles are drawn last
-  internationalData.sort((a, b) => a['Activity Period'].id - b['Activity Period'].id);
-  domesticData.sort((a, b) => a['Activity Period'].id - b['Activity Period'].id);
+  internationalData.sort((a, b) => a[columns.ACTIVITY_PERIOD].id - b[columns.ACTIVITY_PERIOD].id);
+  domesticData.sort((a, b) => a[columns.ACTIVITY_PERIOD].id - b[columns.ACTIVITY_PERIOD].id);
   console.log('sorted - internationalData:', internationalData.length, internationalData[0]);
   console.log('sorted - domesticData:', domesticData.length, domesticData[0]);
 
@@ -186,8 +190,8 @@ function drawDomesticBar(data) {
   // console.log('max = %d', maxPassengerCount);
 
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
-  domesticBars.attr('cx', d => scales.x(d['Activity Period']));
-  domesticBars.attr('cy', d => scales.y(d['Passenger Count']));
+  domesticBars.attr('cx', d => scales.x(d[columns.ACTIVITY_PERIOD]));
+  domesticBars.attr('cy', d => scales.y(d[columns.PASSENGER_COUNT]));
 
   domesticBars.style('stroke', 'white');
   domesticBars.style('fill', 'blue');
@@ -319,52 +323,6 @@ function drawLabels(data) {
 }
 
 /*
- * draw the median lines
- */
-function drawMedian(data) {
-  // place the median lines and labels in their own group
-  const group = plot.append('g').attr('id', 'medians');
-
-  // calculate medians
-  const xMedian = d3.median(data, d=> d.income);
-  const yMedian = d3.median(data, d=> d.mobility);
-  console.log('medians:', [xMedian, yMedian]);
-
-  // draw x median line
-  group.append('line')
-    .attr('x1', scales.x(xMedian))
-    .attr('x2', scales.x(xMedian))
-    .attr('y1', scales.y.range()[0])
-    .attr('y2', scales.y.range()[1])
-    .style('stroke', 'red');
-
-  // draw y median line
-  group.append('line')
-    .attr('x1', scales.x.range()[0])
-    .attr('x2', scales.x.range()[1])
-    .attr('y1', scales.y(yMedian))
-    .attr('y2', scales.y(yMedian))
-    .style('stroke', 'red');
-
-  // draw text label
-  group.append('text')
-    .text('Median = ' + d3.format('.2f')(yMedian))
-    .attr('x', 0)
-    .attr('y', scales.y(yMedian))
-    .attr('dx', 4)
-    .attr('dy', -6)
-    .attr('text-anchor', 'start');
-
-  group.append('text')
-    .text('Median = ' + d3.format('$.2s')(xMedian))
-    .attr('x', scales.x(xMedian))
-    .attr('y', scales.y.range()[0])
-    .attr('dx', 4)
-    .attr('dy', -6)
-    .attr('text-anchor', 'start');
-}
-
-/*
  * this demonstrates d3-legend for creating a circle legend
  * it is made to work with d3v4 not d3v5 however
  */
@@ -411,7 +369,7 @@ function drawTitles() {
 
   const xTitle = svg.append('text')
     .attr('class', 'axis-title')
-    .text('Median Parent Household Income');
+    .text('2019');
 
   xTitle.attr('x', xMiddle);
   xTitle.attr('y', height);
@@ -427,8 +385,8 @@ function drawTitles() {
   yGroup.attr('transform', translate(4, yMiddle));
 
   const yTitle = yGroup.append('text')
-    .attr('class', 'axis-title')
-    .text('Mobility Rate');
+                       .attr('class', 'axis-title')
+                       .text(columns.PASSENGER_COUNT);
 
   // keep x, y at 0, 0 for rotation around the origin
   yTitle.attr('x', 0);
@@ -444,8 +402,12 @@ function drawTitles() {
  */
 function drawAxis() {
   // place the xaxis and yaxis in their own groups
-  const xGroup = svg.append('g').attr('id', 'x-axis').attr('class', 'axis');
-  const yGroup = svg.append('g').attr('id', 'y-axis').attr('class', 'axis');
+  const xGroup = svg.append('g')
+                    .attr('id', 'x-axis')
+                    .attr('class', 'axis');
+  const yGroup = svg.append('g')
+                    .attr('id', 'y-axis')
+                    .attr('class', 'axis');
 
   // create axis generators
   const xAxis = d3.axisBottom(scales.x);
@@ -453,11 +415,12 @@ function drawAxis() {
 
   // https://github.com/d3/d3-format#locale_formatPrefix
   xAxis.ticks(9, 's')
-    .tickSizeOuter(0)
-    .tickSizeInner(0);
+       .tickSizeOuter(0)
+       .tickSizeInner(0);
   yAxis.ticks(5)
-    .tickSizeInner(-width + margin.left + margin.right)
-    .tickSizeOuter(0);
+       .tickSizeInner(-width + margin.left + margin.right)
+       .tickFormat(d => d3.format('.2s')(d))
+       .tickSizeOuter(0);
 
   // shift x axis to correct location
   xGroup.attr('transform', translate(margin.left, height - margin.bottom));
@@ -474,10 +437,10 @@ function drawAxis() {
 function convert(row) {
   let converted = {};
 
-  converted['Passenger Count'] = parseInt(row['Passenger Count']);
-  converted['GEO Summary'] = row['GEO Summary'];
+  converted[columns.PASSENGER_COUNT] = parseInt(row[columns.PASSENGER_COUNT]);
+  converted[columns.GEO_SUMMARY] = row[columns.GEO_SUMMARY];
 
-  let activityPeriod = row['Activity Period'];
+  let activityPeriod = row[columns.ACTIVITY_PERIOD];
   let len = activityPeriod.length;
 
   let res;
@@ -520,7 +483,7 @@ function convert(row) {
       break;
   }
 
-  converted['Activity Period'] = res;
+  converted[columns.ACTIVITY_PERIOD] = res;
 
   return converted;
 }
