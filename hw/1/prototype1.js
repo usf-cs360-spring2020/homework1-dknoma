@@ -56,7 +56,7 @@ const stackLayers = {
 const maxHeight = 6000000;
 
 const margin = {
-  top: 10,
+  top: 30,
   bottom: 35,
   left: 45,
   right: 15
@@ -88,7 +88,6 @@ plot.attr('transform', translate(margin.left, margin.top));
 const scales = {
   x: d3.scaleBand(),
   y: d3.scaleLinear(),
-  fill: d3.scaleDiverging(d3.interpolatePRGn)
 };
 
 // we are going to hardcode the domains, so we can setup our scales now
@@ -99,9 +98,6 @@ scales.x.range([0, width - margin.left - margin.right])
 
 scales.y.range([height - margin.top - margin.bottom, 0])
         .domain([0, maxHeight]);
-
-scales.fill.domain([-20, 0, 35]);
-
 
 const layers = [stackLayers.domestic, stackLayers.international];
 
@@ -115,7 +111,7 @@ let stackColor = d3.scaleOrdinal()
 // since we do not need the data for our domains, we can draw our axis/legends right away
 drawAxis();
 drawTitles();
-// drawColorLegend();
+drawColorLegend();
 // drawCircleLegend();
 
 // load data and trigger draw
@@ -143,16 +139,8 @@ function draw(data) {
   console.log('filter - internationalData:', internationalData.length, internationalData[0]);
   console.log('filter - domesticData:', domesticData.length, domesticData[0]);
 
-  // sort by count so small circles are drawn last
-  data.sort((a, b) => a[columns.ACTIVITY_PERIOD].id - b[columns.ACTIVITY_PERIOD].id);
-  // internationalData.sort((a, b) => a[columns.ACTIVITY_PERIOD].id - b[columns.ACTIVITY_PERIOD].id);
-  // domesticData.sort((a, b) => a[columns.ACTIVITY_PERIOD].id - b[columns.ACTIVITY_PERIOD].id);
-  // console.log('sorted - internationalData:', internationalData.length, internationalData[0]);
-  // console.log('sorted - domesticData:', domesticData.length, domesticData[0]);
-
 
   drawBars(domesticData, internationalData);
-  // drawInternationalBar(internationalData);
   drawLabels(data);
 }
 
@@ -190,7 +178,6 @@ function drawBars(domesticData, internationalData) {
                            .attr('x', d => scales.x(d[columns.ACTIVITY_PERIOD].str))
                            .attr('y', d => {
                              let delta = height - scales.y(d[columns.PASSENGER_COUNT]) - margin.bottom - margin.top;
-                             console.log(delta);
                              return domesticStartPoints[d[columns.ACTIVITY_PERIOD].str] - delta;
                            })
                            .attr('width', scales.x.bandwidth())
@@ -199,28 +186,45 @@ function drawBars(domesticData, internationalData) {
 
 // https://beta.observablehq.com/@tmcw/d3-scalesequential-continuous-color-legend-example
 function drawColorLegend() {
+  const boxWidth = 20;
   const legendWidth = 200;
   const legendHeight = 20;
 
   // place legend in its own group
-  const group = svg.append('g').attr('id', 'color-legend');
+  const group = svg.append('g')
+                   .attr('id', 'color-legend');
 
   // shift legend to appropriate position
-  group.attr('transform', translate(width - margin.right - legendWidth, margin.top + 375));
+  group.attr('transform', translate(width - margin.right - legendWidth, 0));
 
   const title = group.append('text')
                      .attr('class', 'axis-title')
-                     .text('Trend of Parents in Bottom 20%');
+                     .text('GEO Summary')
+                     .attr('dy', 12);
 
-  title.attr('dy', 12);
+  let internationalText = group.append('text')
+                               .attr('class', 'text')
+                               .text('International')
+                               .attr('dy', 32).attr('dx', -60);
 
-  // lets draw the rectangle, but it won't have a fill just yet
-  const colorbox = group.append('rect')
-                        .attr('x', 0)
-                        .attr('y', 12 + 6)
-                        .attr('width', legendWidth)
-                        .attr('height', legendHeight);
+  let domesticText = group.append('text')
+                          .attr('class', 'text')
+                          .text('Domestic')
+                          .attr('dy', 32).attr('dx', 80);
 
+  const internationalBox = group.append('rect')
+                                .attr('x', -100)
+                                .attr('y', 12 + 6)
+                                .attr('width', boxWidth)
+                                .attr('height', legendHeight)
+                                .attr('fill', orange);
+
+  const domesticBox = group.append('rect')
+                            .attr('x', 40)
+                            .attr('y', 12 + 6)
+                            .attr('width', boxWidth)
+                            .attr('height', legendHeight)
+                            .attr('fill', blue);
   // we need to create a linear gradient for our color legend
   // this defines a color at a percent offset
   // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/linearGradient
@@ -228,12 +232,12 @@ function drawColorLegend() {
   // this is easier if we create a scale to map our colors to percents
 
   // get the domain first (we do not want the middle value from the diverging scale)
-  const colorDomain = [d3.min(scales.fill.domain()), d3.max(scales.fill.domain())];
+  // const colorDomain = [d3.min(scales.fill.domain()), d3.max(scales.fill.domain())];
 
   // add a new scale to go from color tick to percent
-  scales.percent = d3.scaleLinear()
-                     .range([0, 100])
-                     .domain(colorDomain);
+  // scales.percent = d3.scaleLinear()
+  //                    .range([0, 100])
+  //                    .domain(colorDomain);
 
   // we have to first add gradients
   const defs = svg.append('defs');
@@ -241,50 +245,49 @@ function drawColorLegend() {
   // add a color stop per data tick
   // input  (ticks)   : [-20, ..., 15, ..., 50]
   // output (percents): [  0, ..., 50, ..., 100]
-  defs.append('linearGradient')
-      .attr('id', 'gradient')
-      .selectAll('stop')
-      .data(scales.fill.ticks())
-      .enter()
-      .append('stop')
-      .attr('offset', d => scales.percent(d) + '%')
-      .attr('stop-color', d => scales.fill(d));
+  // defs.append('linearGradient')
+  //     .attr('id', 'gradient')
+  //     .selectAll('stop')
+  //     .data(scales.fill.ticks())
+  //     .enter()
+  //     .append('stop')
+  //     .attr('offset', d => scales.percent(d) + '%')
+  //     .attr('stop-color', d => scales.fill(d));
 
-  // draw the color rectangle with the gradient
-  colorbox.attr('fill', 'url(#gradient)');
+  // colorbox.attr('fill', 'url(#gradient)');
 
   // now we need to draw tick marks for our scale
   // we can create a legend that will map our data domain to the legend colorbox
-  scales.legend = d3.scaleLinear()
-                    .domain(colorDomain)
-                    .range([0, legendWidth]);
+  // scales.legend = d3.scaleLinear()
+  //                   .domain(colorDomain)
+  //                   .range([0, legendWidth]);
 
   // i tend to keep scales global so i can debug them in the console
   // in this case there really is no need for the percent and legend scales
   // to be accessible outside of this function
 
-  const legendAxis = d3.axisBottom(scales.legend)
-                       .tickValues(scales.fill.domain())
-                       .tickSize(legendHeight)
-                       .tickSizeOuter(0);
+  // const legendAxis = d3.axisBottom(scales.legend)
+  //                      .tickValues(scales.fill.domain())
+  //                      .tickSize(legendHeight)
+  //                      .tickSizeOuter(0);
 
   const axisGroup = group.append('g')
                          .attr('id', 'color-axis')
-                         .attr('transform', translate(0, 12 + 6))
-                         .call(legendAxis);
+                         .attr('transform', translate(0, 12 + 6));
+                         // .call(legendAxis);
 
   // now lets tighten up the tick labels a bit so they don't stick out
-  axisGroup.selectAll('text')
-           .each(function(d, i) {
-             // set the first tick mark to anchor at the start
-             if (i == 0) {
-               d3.select(this).attr('text-anchor', 'start');
-             }
-             // set the last tick mark to anchor at the end
-             else if (i == legendAxis.tickValues().length - 1) {
-               d3.select(this).attr('text-anchor', 'end');
-             }
-           });
+  // axisGroup.selectAll('text')
+  //          .each(function(d, i) {
+  //            // set the first tick mark to anchor at the start
+  //            if (i == 0) {
+  //              d3.select(this).attr('text-anchor', 'start');
+  //            }
+  //            // set the last tick mark to anchor at the end
+  //            else if (i == legendAxis.tickValues().length - 1) {
+  //              d3.select(this).attr('text-anchor', 'end');
+  //            }
+  //          });
 
   // note how many more lines of code it took to generate the legend
   // than the base visualization!
