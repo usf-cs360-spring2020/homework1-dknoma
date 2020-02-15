@@ -53,6 +53,8 @@ const stackLayers = {
   international: 'International'
 };
 
+const maxHeight = 6000000;
+
 const margin = {
   top: 10,
   bottom: 35,
@@ -96,13 +98,13 @@ scales.x.range([0, width - margin.left - margin.right])
         .paddingInner(0.05);
 
 scales.y.range([height - margin.top - margin.bottom, 0])
-        .domain([0, 6000000]);
+        .domain([0, maxHeight]);
 
 scales.fill.domain([-20, 0, 35]);
 
 let stackColor = d3.scaleOrdinal()
               .domain(stackLayers)
-              .range(['orange','blue']);
+              .range(['#4E79A7','orange']);
 
 // since we do not need the data for our domains, we can draw our axis/legends right away
 drawAxis();
@@ -198,7 +200,7 @@ function drawDomesticBar(data) {
                 .attr('x', d => scales.x(d[columns.ACTIVITY_PERIOD].str))
                 .attr('y', d => scales.y(d[columns.PASSENGER_COUNT]))
                 .attr('width', scales.x.bandwidth())
-                .attr('height', 100)
+                .attr('height', d => height - scales.y(d[columns.PASSENGER_COUNT]) - margin.bottom - margin.top + 1)
                 .style('stroke', 'white')
                 .style('fill', stackColor(d => stackColor(d.key)));
 }
@@ -425,7 +427,7 @@ function drawAxis() {
        .tickSizeInner(0);
   yAxis.ticks(5)
        .tickSizeInner(-width + margin.left + margin.right)
-       .tickFormat(d => d3.format('.2s')(d))
+       .tickFormat(d => d3.format('.1s')(d))
        .tickSizeOuter(0);
 
   // shift x axis to correct location
