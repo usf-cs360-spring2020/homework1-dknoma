@@ -107,7 +107,7 @@ let stackColor = d3.scaleOrdinal()
 // since we do not need the data for our domains, we can draw our axis/legends right away
 drawAxis();
 drawTitles();
-drawColorLegend();
+// drawColorLegend();
 // drawCircleLegend();
 
 // load data and trigger draw
@@ -187,21 +187,20 @@ function drawDomesticBar(data) {
   const group = plot.append('g')
                     .attr('id', 'domesticBars');
 
-  const domesticBars = group.selectAll('rect')
-                            .data(data)
-                            .enter()
-                            .append('rect');
 
   // console.log('max = %d', maxPassengerCount);
   console.log('scales.bandX: ' + scales.x.bandwidth());
 
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
-  domesticBars.attr('cx', d => scales.x(d[columns.ACTIVITY_PERIOD]))
-              .attr('cy', d => scales.y(d[columns.PASSENGER_COUNT]))
-              .attr('width', scales.x.bandwidth())
-              .attr('height', 100)
-              // .style('stroke', 'white')
-              .style('fill', stackColor(d => stackColor(d.key)));
+  return group.selectAll('rect')
+              .data(data)
+              .enter()
+              .append('rect')
+                .attr('x', d => scales.x(d[columns.ACTIVITY_PERIOD].str))
+                .attr('y', d => scales.y(d[columns.PASSENGER_COUNT]))
+                .attr('width', scales.x.bandwidth())
+                .attr('height', 100)
+                .style('stroke', 'white')
+                .style('fill', stackColor(d => stackColor(d.key)));
 }
 
 // https://beta.observablehq.com/@tmcw/d3-scalesequential-continuous-color-legend-example
