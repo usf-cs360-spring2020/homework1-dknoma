@@ -112,19 +112,6 @@ let stackColor = d3.scaleOrdinal()
                    .domain(layers)
                    .range([blue, orange]);
 
-// let stackColor = geo => {
-//   let color;
-//   switch(geo) {
-//     case stackLayers.domestic:
-//       color = blue;
-//       break;
-//     case stackLayers.international:
-//       color = orange;
-//       break;
-//   }
-//   return color;
-// };
-
 // since we do not need the data for our domains, we can draw our axis/legends right away
 drawAxis();
 drawTitles();
@@ -164,44 +151,51 @@ function draw(data) {
   // console.log('sorted - domesticData:', domesticData.length, domesticData[0]);
 
 
-  drawDomesticBar(data);
+  drawBars(domesticData, internationalData);
   // drawInternationalBar(internationalData);
-  // drawMedian(data); // in this order, lines will be on top of bubbles
   drawLabels(data);
 }
 
 /*
  * draw bars
  */
-function drawDomesticBar(data) {
+function drawBars(domesticData, internationalData) {
   // place all of the bars in their own group
   const group = plot.append('g')
                     .attr('id', 'bars');
 
+  let domesticStartPoints = {};
 
-  // console.log('max = %d', maxPassengerCount);
-  // console.log('scales.bandX: ' + scales.x.bandwidth());
+  let domestic =  group.selectAll('rect')
+                       .data(domesticData)
+                       .enter()
+                       .append('rect')
+                       .attr('fill', d => stackColor(d[columns.GEO_SUMMARY]))
+                       .attr('x', d => scales.x(d[columns.ACTIVITY_PERIOD].str))
+                       .attr('y', d => {
+                         let point = scales.y(d[columns.PASSENGER_COUNT]);
+                         domesticStartPoints[d[columns.ACTIVITY_PERIOD].str] = point;
+                         return point;
+                       })
+                       .attr('width', scales.x.bandwidth())
+                       .attr('height', d => height - scales.y(d[columns.PASSENGER_COUNT]) - margin.bottom - margin.top);
 
-  return group.selectAll('rect')
-              .data(data)
-              .enter()
-              .append('rect')
-              .attr('fill', d => stackColor(d[columns.GEO_SUMMARY]))
-              .attr('x', d => scales.x(d[columns.ACTIVITY_PERIOD].str))
-              .attr('y', d => scales.y(d[columns.PASSENGER_COUNT]))
-              .attr('width', scales.x.bandwidth())
-              .attr('height', d => height - scales.y(d[columns.PASSENGER_COUNT]) - margin.bottom - margin.top);
+  let international =  plot.append('g')
+                           .attr('id', 'bars')
+                           .selectAll('rect')
+                           .data(internationalData)
+                           .enter()
+                           .append('rect')
+                           .attr('fill', d => stackColor(d[columns.GEO_SUMMARY]))
+                           .attr('x', d => scales.x(d[columns.ACTIVITY_PERIOD].str))
+                           .attr('y', d => {
+                             let delta = height - scales.y(d[columns.PASSENGER_COUNT]) - margin.bottom - margin.top;
+                             console.log(delta);
+                             return domesticStartPoints[d[columns.ACTIVITY_PERIOD].str] - delta;
+                           })
+                           .attr('width', scales.x.bandwidth())
+                           .attr('height', d => height - scales.y(d[columns.PASSENGER_COUNT]) - margin.bottom - margin.top);
 }
-
-// function drawInternationalBar(data) {
-//   // place all of the bars in their own group
-//   const group = plot.append('g')
-//                     .attr('id', 'internationalBars');
-//   // console.log('max = %d', maxPassengerCount);
-//   // console.log('scales.bandX: ' + scales.x.bandwidth());
-//
-//   return drawBars(group);
-// }
 
 // https://beta.observablehq.com/@tmcw/d3-scalesequential-continuous-color-legend-example
 function drawColorLegend() {
