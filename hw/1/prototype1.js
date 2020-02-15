@@ -112,7 +112,6 @@ let stackColor = d3.scaleOrdinal()
 drawAxis();
 drawTitles();
 drawColorLegend();
-// drawCircleLegend();
 
 // load data and trigger draw
 d3.csv('hw/1/Air_Traffic_Passenger_Statistics_1.csv', convert)
@@ -225,72 +224,6 @@ function drawColorLegend() {
                             .attr('width', boxWidth)
                             .attr('height', legendHeight)
                             .attr('fill', blue);
-  // we need to create a linear gradient for our color legend
-  // this defines a color at a percent offset
-  // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/linearGradient
-
-  // this is easier if we create a scale to map our colors to percents
-
-  // get the domain first (we do not want the middle value from the diverging scale)
-  // const colorDomain = [d3.min(scales.fill.domain()), d3.max(scales.fill.domain())];
-
-  // add a new scale to go from color tick to percent
-  // scales.percent = d3.scaleLinear()
-  //                    .range([0, 100])
-  //                    .domain(colorDomain);
-
-  // we have to first add gradients
-  const defs = svg.append('defs');
-
-  // add a color stop per data tick
-  // input  (ticks)   : [-20, ..., 15, ..., 50]
-  // output (percents): [  0, ..., 50, ..., 100]
-  // defs.append('linearGradient')
-  //     .attr('id', 'gradient')
-  //     .selectAll('stop')
-  //     .data(scales.fill.ticks())
-  //     .enter()
-  //     .append('stop')
-  //     .attr('offset', d => scales.percent(d) + '%')
-  //     .attr('stop-color', d => scales.fill(d));
-
-  // colorbox.attr('fill', 'url(#gradient)');
-
-  // now we need to draw tick marks for our scale
-  // we can create a legend that will map our data domain to the legend colorbox
-  // scales.legend = d3.scaleLinear()
-  //                   .domain(colorDomain)
-  //                   .range([0, legendWidth]);
-
-  // i tend to keep scales global so i can debug them in the console
-  // in this case there really is no need for the percent and legend scales
-  // to be accessible outside of this function
-
-  // const legendAxis = d3.axisBottom(scales.legend)
-  //                      .tickValues(scales.fill.domain())
-  //                      .tickSize(legendHeight)
-  //                      .tickSizeOuter(0);
-
-  const axisGroup = group.append('g')
-                         .attr('id', 'color-axis')
-                         .attr('transform', translate(0, 12 + 6));
-                         // .call(legendAxis);
-
-  // now lets tighten up the tick labels a bit so they don't stick out
-  // axisGroup.selectAll('text')
-  //          .each(function(d, i) {
-  //            // set the first tick mark to anchor at the start
-  //            if (i == 0) {
-  //              d3.select(this).attr('text-anchor', 'start');
-  //            }
-  //            // set the last tick mark to anchor at the end
-  //            else if (i == legendAxis.tickValues().length - 1) {
-  //              d3.select(this).attr('text-anchor', 'end');
-  //            }
-  //          });
-
-  // note how many more lines of code it took to generate the legend
-  // than the base visualization!
 }
 
 /*
@@ -323,41 +256,6 @@ function drawLabels(data) {
     .filter(d => d.label)
     .style('stroke', 'black')
     .style('stroke-width', 1);
-}
-
-/*
- * this demonstrates d3-legend for creating a circle legend
- * it is made to work with d3v4 not d3v5 however
- */
-function drawCircleLegend() {
-  const legendWidth = 200;
-  const legendHeight = 20;
-
-  // place legend into its own group
-  const group = svg.append('g').attr('id', 'circle-legend');
-
-  // position legend
-  group.attr('transform', translate(width - margin.right - legendWidth + 75, margin.top + 25))
-
-  // https://d3-legend.susielu.com/#size-linear
-  const legendSize = d3.legendSize()
-    .scale(scales.r)
-    .shape('circle')
-    .cells(6)
-    .ascending(false)
-    .shapePadding(10)
-    .labelOffset(10)
-    .labelFormat('d')
-    .title('Median Cohort Size')
-    .orient('vertical');
-
-  group.call(legendSize);
-
-  // fix the title spacing
-  group.select('text.legendTitle').attr('dy', -8);
-
-  // note it is harder to get this to be two column using this package
-  // we have to select what was drawn and then move it around
 }
 
 /*
