@@ -14,20 +14,39 @@
 // set svg size and plot margins
 const width = 960;
 const height = 500;
-
 const month = {
-  JAN: 'January',
-  FEB: 'February',
-  MAR: 'March',
-  APR: 'April',
-  MAY: 'May',
-  JUN: 'June',
-  JUL: 'July',
-  AUG: 'August',
-  SEP: 'September',
-  OCT: 'October',
-  NOV: 'November',
-  DEC: 'December',
+  JAN: { str: 'January', id: 1 },
+  FEB: { str: 'February', id: 2 },
+  MAR: { str: 'March', id: 3 },
+  APR: { str: 'April', id: 4 },
+  MAY: { str: 'May', id: 5 },
+  JUN: { str: 'June', id: 6 },
+  JUL: { str: 'July', id: 7 },
+  AUG: { str: 'August', id: 8 },
+  SEP: { str: 'September', id: 9 },
+  OCT: { str: 'October', id: 10 },
+  NOV: { str: 'November', id: 11 },
+  DEC: { str: 'December', id: 12 },
+};
+
+const months = [
+  month.JAN.str,
+  month.FEB.str,
+  month.MAR.str,
+  month.APR.str,
+  month.MAY.str,
+  month.JUN.str,
+  month.JUL.str,
+  month.AUG.str,
+  month.SEP.str,
+  month.OCT.str,
+  month.NOV.str,
+  month.DEC.str,
+];
+
+const stackLayers = {
+  domestic: 'Domestic',
+  international: 'International'
 };
 
 const margin = {
@@ -38,22 +57,22 @@ const margin = {
 };
 
 // select svg
-const svg = d3.select("svg#bar");
+const svg = d3.select('svg#bar');
 console.assert(svg.size() == 1);
 
 // set svg size
-svg.attr("width", width);
-svg.attr("height", height);
+svg.attr('width', width);
+svg.attr('height', height);
 
 // add plot region
-const plot = svg.append("g").attr("id", "plot");
+const plot = svg.append('g').attr('id', 'plot');
 
 // this is just so we can see the transform of the plot
 // comment out for final version
-// plot.append("rect").attr("width", 10).attr("height", 10);
+// plot.append('rect').attr('width', 10).attr('height', 10);
 
 // transform region by margin
-plot.attr("transform", translate(margin.left, margin.top));
+plot.attr('transform', translate(margin.left, margin.top));
 
 /*
  * setup scales with ranges and the domains we set from tableau
@@ -61,25 +80,18 @@ plot.attr("transform", translate(margin.left, margin.top));
  */
 
 const scales = {
-  x: d3.scaleLinear(),
+  x: d3.scaleBand(),
   y: d3.scaleLinear(),
-  // do not linearly scale radius...
-  // area = pi * r * r, so use sqrt of r!
-  r: d3.scaleSqrt(),
   fill: d3.scaleDiverging(d3.interpolatePRGn)
 };
 
 // we are going to hardcode the domains, so we can setup our scales now
 // that is one benefit of prototyping!
 scales.x.range([0, width - margin.left - margin.right]);
-scales.x.domain([20000, 185000]);
+scales.x.domain(months);
 
 scales.y.range([height - margin.top - margin.bottom, 0]);
-scales.y.domain([-0.5, 10.5]);
-
-// note we can chain if we want
-scales.r.range([1, 20])
-        .domain([0, 9000]);
+scales.y.domain([0, 6000000]);
 
 scales.fill.domain([-20, 0, 35]);
 
@@ -90,9 +102,11 @@ drawColorLegend();
 // drawCircleLegend();
 
 // load data and trigger draw
-// d3.csv("hw/1/Air_Traffic_Passenger_Statistics.csv", convert).then(draw);
-d3.csv("hw/1/Air_Traffic_Passenger_Statistics_1.csv")
+d3.csv('hw/1/Air_Traffic_Passenger_Statistics_1.csv', convert)
   .then(draw);
+
+let maxPassengerCount = 0;
+
 
 /*
   {
@@ -105,24 +119,54 @@ d3.csv("hw/1/Air_Traffic_Passenger_Statistics_1.csv")
   }
  */
 function draw(data) {
-  console.log("loaded:", data.length, data[0]);
+  console.log(data);
+  console.log('loaded:', data.length, data[0]);
+
+  data.forEach(row => {
+    let count = row['Passenger Count'];
+    if(count > maxPassengerCount) {
+      maxPassengerCount = count;
+    }
+  });
+
+  // separate data into stack layers
+  // let layeredData = ['Domestic', 'International'].map(
+  //   (geo) => {
+  //     return data.map(
+  //       (d) => {
+  //         return {
+  //           'Activity Period': d['Activity Period'],
+  //           'GEO Summary': geo,
+  //           'Passenger Count': d['Passenger Count'],
+  //         };
+  //       }
+  //     );
+  //   }
+  // );
+  //
+  // // Sort by activity period
+  // for(let i = 0; i < layeredData.length; i++) {
+  //   layeredData[i].sort((a, b) => a['Activity Period'].id - b['Activity Period'].id);
+  // }
+  //
+  // console.log(layeredData);
 
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
-  // data = data.filter(row => row.state === "CA");
   let internationalData = data.filter(row => row['GEO Summary'] === 'International');
   let domesticData = data.filter(row => row['GEO Summary'] === 'Domestic');
-  console.log("filter - internationalData:", internationalData.length, internationalData[0]);
-  console.log("filter - domesticData:", domesticData.length, domesticData[0]);
+  console.log('filter - internationalData:', internationalData.length, internationalData[0]);
+  console.log('filter - domesticData:', domesticData.length, domesticData[0]);
 
   // sort by count so small circles are drawn last
-  internationalData.sort((a, b) => a['Activity Period'] - b['Activity Period']);
-  domesticData.sort((a, b) => a['Activity Period'] - b['Activity Period']);
-  console.log("sorted - internationalData:", internationalData.length, internationalData[0]);
-  console.log("sorted - domesticData:", domesticData.length, domesticData[0]);
+  internationalData.sort((a, b) => a['Activity Period'].id - b['Activity Period'].id);
+  domesticData.sort((a, b) => a['Activity Period'].id - b['Activity Period'].id);
+  console.log('sorted - internationalData:', internationalData.length, internationalData[0]);
+  console.log('sorted - domesticData:', domesticData.length, domesticData[0]);
+
 
   drawDomesticBar(domesticData);
   // drawInternationalBar(data);
-  drawMedian(data); // in this order, lines will be on top of bubbles
+  // drawMedian(data); // in this order, lines will be on top of bubbles
   drawLabels(data);
 }
 
@@ -131,25 +175,18 @@ function draw(data) {
  */
 function drawDomesticBar(data) {
   // place all of the bars in their own group
-  const group = plot.append('g').attr('id', 'domesticBars');
+  const group = plot.append('g')
+                    .attr('id', 'domesticBars');
 
   const domesticBars = group.selectAll('rect')
                             .data(data)
                             .enter()
                             .append('rect');
 
-  console.log('Passenger Count = %s', data);
-  let maxValue = Math.max(data['Passenger Count']);
-  console.log('max = %s', maxValue);
-
-  let y = d3.scale.linear()
-            .domain([0, 42])
-            .range([height, 0]);
+  // console.log('max = %d', maxPassengerCount);
 
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
-  domesticBars.attr("width", 20)
-              .attr("height",function(d) { return height - y(d); })
-              .attr('cx', d => scales.x(d['Activity Period']));
+  domesticBars.attr('cx', d => scales.x(d['Activity Period']));
   domesticBars.attr('cy', d => scales.y(d['Passenger Count']));
 
   domesticBars.style('stroke', 'white');
@@ -349,7 +386,7 @@ function drawCircleLegend() {
     .ascending(false)
     .shapePadding(10)
     .labelOffset(10)
-    .labelFormat("d")
+    .labelFormat('d')
     .title('Median Cohort Size')
     .orient('vertical');
 
@@ -370,7 +407,7 @@ function drawTitles() {
   const yMiddle = margin.top + midpoint(scales.y.range());
 
   // test middle calculation
-  // svg.append("circle").attr("cx", xMiddle).attr("cy", yMiddle).attr("r", 5);
+  // svg.append('circle').attr('cx', xMiddle).attr('cy', yMiddle).attr('r', 5);
 
   const xTitle = svg.append('text')
     .attr('class', 'axis-title')
@@ -432,13 +469,13 @@ function drawAxis() {
 }
 
 /*
- * converts values as necessary and discards unused columns
+ * converts values as necessary
  */
 function convert(row) {
-  let keep = {};
+  let converted = {};
 
-  keep['Passenger Count'] = parseInt(row['Passenger Count']);
-  keep['GEO Summary'] = row['GEO Summary'];;
+  converted['Passenger Count'] = parseInt(row['Passenger Count']);
+  converted['GEO Summary'] = row['GEO Summary'];
 
   let activityPeriod = row['Activity Period'];
   let len = activityPeriod.length;
@@ -483,9 +520,9 @@ function convert(row) {
       break;
   }
 
-  keep['Activity Period'] = res;
+  converted['Activity Period'] = res;
 
-  return keep;
+  return converted;
 }
 
 /*
